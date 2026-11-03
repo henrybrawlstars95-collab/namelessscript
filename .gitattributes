@@ -1,2 +1,336 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+-- Quantum Community V2 (interface base)
+
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local old = playerGui:FindFirstChild("QuantumCommunityV2")
+if old then old:Destroy() end
+
+local PURPLE = Color3.fromRGB(135, 45, 255)
+local BG = Color3.fromRGB(13, 10, 22)
+local PANEL = Color3.fromRGB(24, 18, 38)
+local TEXT = Color3.fromRGB(235, 225, 255)
+local MUTED = Color3.fromRGB(155, 140, 185)
+local GREEN = Color3.fromRGB(65, 230, 120)
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "QuantumCommunityV2"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = playerGui
+
+local root = Instance.new("Frame")
+root.Name = "Window"
+root.Size = UDim2.fromOffset(760, 500)
+root.Position = UDim2.new(0.5, -380, 0.5, -250)
+root.BackgroundColor3 = BG
+root.BorderSizePixel = 0
+root.Parent = gui
+Instance.new("UICorner", root).CornerRadius = UDim.new(0, 14)
+local stroke = Instance.new("UIStroke", root)
+stroke.Color = PURPLE
+stroke.Transparency = 0.2
+stroke.Thickness = 1.5
+
+local header = Instance.new("TextLabel")
+header.Size = UDim2.new(1, -24, 0, 48)
+header.Position = UDim2.fromOffset(16, 5)
+header.BackgroundTransparency = 1
+header.Font = Enum.Font.GothamBold
+header.Text = "♛  Quantum Community  |  V2"
+header.TextColor3 = TEXT
+header.TextSize = 20
+header.TextXAlignment = Enum.TextXAlignment.Left
+header.Parent = root
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.fromOffset(32, 30)
+close.Position = UDim2.new(1, -42, 0, 12)
+close.Text = "×"
+close.TextSize = 24
+close.Font = Enum.Font.Gotham
+close.TextColor3 = TEXT
+close.BackgroundColor3 = PANEL
+close.Parent = root
+Instance.new("UICorner", close).CornerRadius = UDim.new(0, 8)
+close.MouseButton1Click:Connect(function() gui:Destroy() end)
+
+local sidebar = Instance.new("Frame")
+sidebar.Position = UDim2.fromOffset(12, 58)
+sidebar.Size = UDim2.fromOffset(155, 425)
+sidebar.BackgroundColor3 = PANEL
+sidebar.BorderSizePixel = 0
+sidebar.Parent = root
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 10)
+
+local content = Instance.new("Frame")
+content.Position = UDim2.fromOffset(180, 58)
+content.Size = UDim2.fromOffset(568, 425)
+content.BackgroundTransparency = 1
+content.Parent = root
+
+local pages = {}
+local selectedTab = nil
+local active = {} -- [featureName] = true/false
+local rows = {}
+
+local function makePage(name)
+    local page = Instance.new("ScrollingFrame")
+    page.Name = name
+    page.Size = UDim2.fromScale(1, 1)
+    page.BackgroundColor3 = PANEL
+    page.BorderSizePixel = 0
+    page.ScrollBarThickness = 4
+    page.ScrollBarImageColor3 = PURPLE
+    page.CanvasSize = UDim2.new(0, 0, 0, 0)
+    page.Visible = false
+    page.Parent = content
+    Instance.new("UICorner", page).CornerRadius = UDim.new(0, 10)
+    local layout = Instance.new("UIListLayout", page)
+    layout.Padding = UDim.new(0, 8)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        page.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 16)
+    end)
+    local pad = Instance.new("UIPadding", page)
+    pad.PaddingTop = UDim.new(0, 12)
+    pad.PaddingLeft = UDim.new(0, 12)
+    pad.PaddingRight = UDim.new(0, 12)
+    pad.PaddingBottom = UDim.new(0, 12)
+    pages[name] = page
+    return page
+end
+
+local function showTab(name)
+    selectedTab = name
+    for n, p in pairs(pages) do p.Visible = (n == name) end
+    for _, b in ipairs(sidebar:GetChildren()) do
+        if b:IsA("TextButton") then
+            b.BackgroundColor3 = (b.Name == name) and PURPLE or PANEL
+        end
+    end
+end
+
+local function tabButton(name, order)
+    local b = Instance.new("TextButton")
+    b.Name = name
+    b.Size = UDim2.new(1, -14, 0, 42)
+    b.Position = UDim2.fromOffset(7, 8 + (order - 1) * 48)
+    b.BackgroundColor3 = PANEL
+    b.BorderSizePixel = 0
+    b.Text = "   " .. name
+    b.TextColor3 = TEXT
+    b.TextSize = 14
+    b.Font = Enum.Font.GothamMedium
+    b.TextXAlignment = Enum.TextXAlignment.Left
+    b.Parent = sidebar
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+    b.MouseButton1Click:Connect(function() showTab(name) end)
+end
+
+local function addInfo(page, title, subtitle)
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, -2, 0, 72)
+    card.BackgroundColor3 = BG
+    card.BorderSizePixel = 0
+    card.Parent = page
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
+    local t = Instance.new("TextLabel")
+    t.Position = UDim2.fromOffset(12, 8)
+    t.Size = UDim2.new(1, -24, 0, 24)
+    t.BackgroundTransparency = 1
+    t.Font = Enum.Font.GothamBold
+    t.Text = title
+    t.TextColor3 = TEXT
+    t.TextSize = 15
+    t.TextXAlignment = Enum.TextXAlignment.Left
+    t.Parent = card
+    local s = Instance.new("TextLabel")
+    s.Position = UDim2.fromOffset(12, 34)
+    s.Size = UDim2.new(1, -24, 0, 28)
+    s.BackgroundTransparency = 1
+    s.Font = Enum.Font.Gotham
+    s.Text = subtitle
+    s.TextColor3 = MUTED
+    s.TextSize = 12
+    s.TextWrapped = true
+    s.TextXAlignment = Enum.TextXAlignment.Left
+    s.Parent = card
+end
+
+local function updateActivePage()
+    local page = pages.Active
+    if not page then return end
+    for _, child in ipairs(page:GetChildren()) do
+        if child:IsA("Frame") and child:GetAttribute("GeneratedActiveRow") then
+            child:Destroy()
+        end
+    end
+    local names = {}
+    for name, enabled in pairs(active) do
+        if enabled then table.insert(names, name) end
+    end
+    table.sort(names)
+    if #names == 0 then
+        addInfo(page, "Nenhuma função ativa", "Ative um recurso nas abas Farm ou Combat.")
+    else
+        for _, name in ipairs(names) do
+            local row = Instance.new("Frame")
+            row.Size = UDim2.new(1, -2, 0, 42)
+            row.BackgroundColor3 = BG
+            row.BorderSizePixel = 0
+            row:SetAttribute("GeneratedActiveRow", true)
+            row.Parent = page
+            Instance.new("UICorner", row).CornerRadius = UDim.new(0, 8)
+            local dot = Instance.new("Frame")
+            dot.Size = UDim2.fromOffset(9, 9)
+            dot.Position = UDim2.fromOffset(14, 16)
+            dot.BackgroundColor3 = GREEN
+            dot.BorderSizePixel = 0
+            dot.Parent = row
+            Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+            local label = Instance.new("TextLabel")
+            label.Position = UDim2.fromOffset(32, 0)
+            label.Size = UDim2.new(1, -120, 1, 0)
+            label.BackgroundTransparency = 1
+            label.Font = Enum.Font.Gotham
+            label.Text = name
+            label.TextColor3 = TEXT
+            label.TextSize = 13
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.Parent = row
+            local off = Instance.new("TextButton")
+            off.Size = UDim2.fromOffset(72, 26)
+            off.Position = UDim2.new(1, -82, 0.5, -13)
+            off.Text = "Desligar"
+            off.Font = Enum.Font.GothamBold
+            off.TextSize = 10
+            off.TextColor3 = TEXT
+            off.BackgroundColor3 = Color3.fromRGB(70, 35, 100)
+            off.Parent = row
+            Instance.new("UICorner", off).CornerRadius = UDim.new(0, 6)
+            off.MouseButton1Click:Connect(function()
+                active[name] = false
+                if rows[name] then rows[name](false) end
+                updateActivePage()
+            end)
+        end
+    end
+end
+
+local function addToggle(page, name, description, callback)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, -2, 0, 66)
+    row.BackgroundColor3 = BG
+    row.BorderSizePixel = 0
+    row.Parent = page
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 8)
+
+    local title = Instance.new("TextLabel")
+    title.Position = UDim2.fromOffset(12, 8)
+    title.Size = UDim2.new(1, -100, 0, 22)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.Text = name
+    title.TextColor3 = TEXT
+    title.TextSize = 14
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = row
+
+    local desc = Instance.new("TextLabel")
+    desc.Position = UDim2.fromOffset(12, 32)
+    desc.Size = UDim2.new(1, -100, 0, 22)
+    desc.BackgroundTransparency = 1
+    desc.Font = Enum.Font.Gotham
+    desc.Text = description
+    desc.TextColor3 = MUTED
+    desc.TextSize = 11
+    desc.TextXAlignment = Enum.TextXAlignment.Left
+    desc.Parent = row
+
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.fromOffset(48, 26)
+    toggle.Position = UDim2.new(1, -62, 0.5, -13)
+    toggle.Text = ""
+    toggle.BackgroundColor3 = Color3.fromRGB(55, 45, 70)
+    toggle.Parent = row
+    Instance.new("UICorner", toggle).CornerRadius = UDim.new(1, 0)
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.fromOffset(20, 20)
+    knob.Position = UDim2.fromOffset(3, 3)
+    knob.BackgroundColor3 = TEXT
+    knob.Parent = toggle
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+
+    local enabled = false
+    local function setState(value)
+        enabled = value
+        active[name] = value
+        toggle.BackgroundColor3 = value and PURPLE or Color3.fromRGB(55, 45, 70)
+        knob.Position = value and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3)
+        if callback then callback(value) end
+        updateActivePage()
+    end
+    rows[name] = setState
+    toggle.MouseButton1Click:Connect(function() setState(not enabled) end)
+end
+
+local home = makePage("Home")
+addInfo(home, "Bem-vindo à Community V2", "Interface base organizada. Os módulos de jogo devem ser implementados separadamente e com segurança.")
+addInfo(home, "Sem Key própria", "Este projeto não inclui autenticação, links de acesso ou coleta de HWID.")
+addInfo(home, "Dica de estabilidade", "Evite loops sem limite; use eventos, cooldowns e limpeza ao desligar.")
+
+local farm = makePage("Farm")
+addToggle(farm, "Auto Farm (placeholder)", "Espaço reservado para módulo legítimo no Studio.", function(on)
+    if on then warn("Auto Farm ainda não implementado.") end
+end)
+addToggle(farm, "Auto Quest (placeholder)", "Demonstração de toggle; não executa ações no jogo.", function(on)
+    if on then warn("Auto Quest ainda não implementado.") end
+end)
+
+local combat = makePage("Combat")
+addToggle(combat, "Fast Attack (placeholder)", "Sem alteração de velocidade/ataques em servidores públicos.", function(on)
+    if on then warn("Fast Attack ainda não implementado.") end
+end)
+addToggle(combat, "Auto Click (placeholder)", "Demonstração de interface apenas.", function(on)
+    if on then warn("Auto Click ainda não implementado.") end
+end)
+
+local activePage = makePage("Active")
+local perf = makePage("Performance")
+addInfo(perf, "Estabilidade", "Use tarefas únicas, intervalos controlados e desconexões limpas.")
+addInfo(perf, "Monitor", "Este painel não coleta FPS/ping automaticamente nesta versão base.")
+local settings = makePage("Settings")
+addInfo(settings, "Configurações", "Tema roxo/preto • Interface simples • Sem animações pesadas")
+
+tabButton("Home", 1)
+tabButton("Farm", 2)
+tabButton("Combat", 3)
+tabButton("Active", 4)
+tabButton("Performance", 5)
+tabButton("Settings", 6)
+showTab("Home")
+
+-- Arrastar janela pelo cabeçalho
+local UserInputService = game:GetService("UserInputService")
+local dragging, dragStart, startPos
+header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = root.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        root.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+updateActivePage()
